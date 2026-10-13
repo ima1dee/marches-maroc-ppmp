@@ -1,1 +1,47 @@
-
+name: Synchroniser le PPMP
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'
+  push:
+    paths: ['collect.mjs', 'package.json', '.github/workflows/collect.yml']
+permissions:
+  contents: write
+concurrency:
+  group: ppmp-collect
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Collecte publique
+        id: collect
+        continue-on-error: true
+        run: npm run collect
+      - name: Enregistrer le statut réel
+        if: always()
+        env:
+          RESULT: ${{ steps.collect.outcome }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir -p data
+          node --input-type=module -e "import fs from 'node:fs'; let last=null; try{last=JSON.parse(fs.readFileSync('data/catalogue.json')).completedAt}catch{} fs.writeFileSync('data/status.json',JSON.stringify({attemptedAt:new Date().toISOString(),lastSuccessAt:last,status:process.env.RESULT==='success'?'success':'failed',runUrl:process.env.RUN_URL},null,2))"
+      - name: Publier les données et le statut
+        if: always()
+        run: |
+          git config user.name 'Marchés Maroc collector'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/
+          git diff --cached --quiet && exit 0
+          git commit -m 'Actualiser le catalogue PPMP et son statut'
+          git push
+      - name: Signaler un échec
+        if: steps.collect.outcome != 'success'
+        run: exit 1
