@@ -6,18 +6,23 @@ import { writeFile, rename } from 'node:fs/promises';
 const destination=process.argv[2]||'ppmp-catalogue.json';
 const source='https://www.marchespublics.gov.ma/index.php5?page=entreprise.EntrepriseAdvancedSearch&AllCons&EnCours';
 const browser=await chromium.launch({headless:true});
+console.log('Navigateur démarré');
 const page=await browser.newPage();
 const records=new Map();const signatures=new Set();let pages=0;
 const action='a:has(img[alt="Accéder à la consultation"])';
 try{
  await page.goto(source,{waitUntil:'domcontentloaded',timeout:60000});
+ console.log('Page publique chargée');
  await page.locator(action).first().waitFor({timeout:30000});
  await page.locator('#ctl0_CONTENU_PAGE_resultSearch_listePageSizeTop').selectOption('100');
+ console.log('Taille 100 sélectionnée');
  // Le changement de taille peut ne prendre effet qu'au prochain postback.
  await page.locator('#ctl0_CONTENU_PAGE_resultSearch_PagerTop_ctl2').click();
  await page.waitForFunction(()=>document.querySelector('#ctl0_CONTENU_PAGE_resultSearch_numPageTop')?.value==='2',{},{timeout:45000});
+ console.log('Page 2 atteinte');
  await page.locator('#ctl0_CONTENU_PAGE_resultSearch_PagerTop_ctl0').click();
  await page.waitForFunction(()=>document.querySelector('#ctl0_CONTENU_PAGE_resultSearch_numPageTop')?.value==='1',{},{timeout:45000});
+ console.log('Début du parcours depuis la page 1');
  for(let n=1;n<=1000;n++){
   await page.locator(action).first().waitFor({timeout:30000});
   const result=await page.evaluate(()=>{
@@ -34,6 +39,7 @@ try{
   const signature=result.rows.map(r=>r.id).join('|');if(signatures.has(signature))throw Error('Page répétée');signatures.add(signature);
   for(const r of result.rows){if(!r.consultationId||!r.organisationId||!r.reference||!r.title||!r.buyer)throw Error('Fiche incomplète');records.set(r.id,r)}
   pages++;
+  console.log(JSON.stringify({page:n,totalPages:result.total,rows:result.rows.length,uniqueAnnouncements:records.size}));
   if(n>=result.total)break;
   if(!result.next||n===1000)throw Error('Collecte incomplète');
   await page.waitForTimeout(2500);
