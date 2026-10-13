@@ -2,8 +2,10 @@
 // Usage : node ppmp-collector.mjs [fichier-sortie.json]
 // Écriture atomique : conserve la précédente collecte si une page échoue.
 import { chromium } from 'playwright';
-import { writeFile, rename } from 'node:fs/promises';
+import { writeFile, rename, mkdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
 const destination=process.argv[2]||'ppmp-catalogue.json';
+await mkdir(dirname(destination),{recursive:true});
 const source='https://www.marchespublics.gov.ma/index.php5?page=entreprise.EntrepriseAdvancedSearch&AllCons&EnCours';
 const browser=await chromium.launch({headless:true});
 console.log('Navigateur démarré');
