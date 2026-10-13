@@ -22,6 +22,8 @@ try{
  await page.waitForFunction(()=>document.querySelector('#ctl0_CONTENU_PAGE_resultSearch_numPageTop')?.value==='1'&&document.querySelectorAll('a img[alt="Accéder à la consultation"]').length===100,{},{timeout:45000});
  console.log('Début du parcours depuis la page 1');
  for(let n=1;n<=1000;n++){
+  // Le numéro de page arrive avant la fin du rendu du tableau : attendre chaque ligne.
+  await page.waitForFunction(expected=>{const total=Number(document.body.innerText.match(/Nombre de résultats\s*:\s*(\d+)/)?.[1]);return Number(document.querySelector('#ctl0_CONTENU_PAGE_resultSearch_numPageTop')?.value)===expected&&total>0&&document.querySelectorAll('a img[alt="Accéder à la consultation"]').length===Math.min(100,total-(expected-1)*100)},n,{timeout:45000});
   await page.locator(action).first().waitFor({timeout:30000});
   const result=await page.evaluate(()=>{
    const clean=s=>(s||'').replace(/\s+/g,' ').trim();
