@@ -18,12 +18,8 @@ try{
  await page.locator(action).first().waitFor({timeout:30000});
  await page.locator('#ctl0_CONTENU_PAGE_resultSearch_listePageSizeTop').selectOption('100');
  console.log('Taille 100 sélectionnée');
- // Le changement de taille peut ne prendre effet qu'au prochain postback.
- await page.locator('#ctl0_CONTENU_PAGE_resultSearch_PagerTop_ctl2').click();
- await page.waitForFunction(()=>document.querySelector('#ctl0_CONTENU_PAGE_resultSearch_numPageTop')?.value==='2',{},{timeout:45000});
- console.log('Page 2 atteinte');
- await page.locator('#ctl0_CONTENU_PAGE_resultSearch_PagerTop_ctl0').click();
- await page.waitForFunction(()=>document.querySelector('#ctl0_CONTENU_PAGE_resultSearch_numPageTop')?.value==='1',{},{timeout:45000});
+ // Attendre le postback déclenché par le changement de taille avant toute navigation.
+ await page.waitForFunction(()=>document.querySelector('#ctl0_CONTENU_PAGE_resultSearch_numPageTop')?.value==='1'&&document.querySelectorAll('a img[alt="Accéder à la consultation"]').length===100,{},{timeout:45000});
  console.log('Début du parcours depuis la page 1');
  for(let n=1;n<=1000;n++){
   await page.locator(action).first().waitFor({timeout:30000});
