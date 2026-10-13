@@ -1,0 +1,1 @@
+{"name":"marches-maroc-ppmp","private":true,"type":"module","scripts":{"collect":"node collect.mjs data/catalogue.json"},"dependencies":{"playwright":"1.56.1"}}
